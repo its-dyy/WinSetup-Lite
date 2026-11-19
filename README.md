@@ -1,54 +1,71 @@
 # WinSetup Lite
 
-**AI 辅助的 Windows 11 装机助手**
+WinSetup Lite 是一款面向 Windows 11 的装机与软件迁移工具。重装系统、换电脑或配置开发环境时，可以整理一份软件清单，让 WinGet 检查本机状态，再批量安装缺少的软件。
 
-重装 Windows 或换电脑后，你通常需要重列常用软件、确认哪些已经安装，再逐个补齐。WinSetup Lite 计划把这些操作放到一个桌面窗口。你可以手动勾选软件，也可以用中文描述电脑的用途，让本地 AI 生成一份可编辑的装机清单。确认后，程序通过 WinGet 安装缺少的软件。
+软件可以手动添加，也可以由本地 AI 根据你的用途推荐。推荐先显示在右侧，确认后再加入清单。旧电脑上的软件清单可以导出为 JSON，带到新电脑继续使用。
 
-> **项目状态**　目前处于设计阶段。下文为第一版的计划和使用示例。
+## 快速开始
 
-## 怎么用
+运行环境为 Windows 11、带 Tkinter 的 Python 3.11 或更新版本，以及可用的 WinGet。程序使用 Python 标准库，通过 WinGet 安装软件。AI 推荐是可选功能。
 
-1. **准备清单。** 从内置目录手动勾选软件，导入之前保存的清单，或输入需求让 AI 生成一份。
-2. **检查本机。** 程序查看清单里的软件是否已安装。你可以查看检测结果，调整要安装的项目。
-3. **确认并安装。** 点击安装后，程序按软件包 ID 逐项调用 WinGet，并显示每项是安装成功、已跳过，还是安装失败。
-4. **保存清单。** 将软件选择保存为本地 JSON 文件。导入另一台电脑时，程序会重新检查那台电脑，只将缺少的项目列为待安装。
+在项目根目录打开 PowerShell，运行下面的命令。
 
-## 示例：换电脑后恢复 Python 开发环境
+```powershell
+winget --version
+python -m winsetup
+```
 
-> 我主要用这台电脑写 Python，需要 Git。编辑器沿用已有的 VS Code，浏览器先不用装。
+如果找不到 `winget`，可以从 Microsoft Store 安装或更新 App Installer。若提示需要接受软件源条款，先运行 `winget list --source winget`，按终端提示处理。 [WinGet 官方文档](https://learn.microsoft.com/windows/package-manager/winget/)
 
-假设程序检测到这台电脑已有 VS Code，但还缺 Python 和 Git，预览清单会显示：
+## 整理清单与批量安装
 
-| 软件 | 本机状态 | 确认后的操作 |
-| --- | --- | --- |
-| Python | 未安装 | 安装 |
-| Git | 未安装 | 安装 |
-| Visual Studio Code | 已安装 | 跳过 |
+1. **选软件。** 在左侧勾选所需项目。目录内置 Python 3.11、Git、Visual Studio Code、7-Zip 和 VLC。要加其他软件，点 **搜索并添加软件**，输入软件名或 WinGet ID，核对后点 **添加所选**。
+2. **核对安装项。** 点 **安装所选缺失项**，确认窗口会列出待安装、已安装将跳过、检测失败的项目。也可以先点 **检查状态** 单独查看本机状态。打开确认窗口时，程序会复用 90 秒内的有效检测结果。
+3. **确认并跟踪进度。** 点确认窗口中的 **安装**。主窗口底部会显示处理进度，结束后汇总成功、跳过和失败的数量。右下角的 **操作记录** 会打开独立窗口，可查看错误详情。点 **重试失败项** 可以重新处理失败的项目。
 
-如果还想暂缓安装 Git，可以在预览里取消勾选，再执行安装。示例清单只包含需要恢复的开发工具。
+点击 **保存清单** 可将当前勾选项导出为 JSON。添加或移除软件后，左侧目录会自动保存到本机。
 
-## AI、程序和用户分别做什么
+## 用 AI 推荐软件
 
-| 参与方 | 负责的工作 |
-| --- | --- |
-| **本地 AI（Ollama + Qwen3）** | 理解「写 Python」「沿用现有编辑器」等自然语言需求，从内置软件目录里选择候选项，给出推荐理由。 |
-| **WinSetup Lite** | 核对模型返回的软件 ID，检查本机安装状态，生成可编辑的清单，并在用户确认后调用 WinGet。 |
-| **用户** | 决定最终安装哪些项目，也可以直接手动勾选或导入已有清单。 |
+安装并启动 Ollama，然后运行下面的命令下载默认模型。 [Ollama Windows 使用文档](https://docs.ollama.com/windows)
 
-AI 功能按需启用。启用时，程序会把需求文本和软件目录发送给本机的 Ollama，接收包含软件 ID 与理由的结构化 JSON。手动勾选、清单导入导出和 WinGet 安装均可独立使用。 [Ollama 结构化输出](https://docs.ollama.com/capabilities/structured-outputs) · [Qwen3 模型](https://ollama.com/library/qwen3)
+```powershell
+ollama pull qwen3:1.7b
+```
 
-## 第一版开发计划
+在右侧输入电脑用途和偏好。例如「我主要用这台电脑写 Python，需要 Git，编辑器沿用已有的 VS Code」。点击 **生成推荐** 后，点选软件名称可在列表下方查看理由。
 
-- **手动安装。** 用 Python 和 Tkinter 实现桌面窗口，先接入 3～5 款常用软件，验证能否跳过已安装的软件，并在单项失败时显示明确结果。
-- **清单复用。** 实现 JSON 导出和导入，验证同一份清单在不同安装状态的电脑上能列出不同的待装项目。
-- **AI 推荐。** 接入本地模型，用「只补 Git」「沿用现有的 VS Code」等需求检查推荐是否符合用户限制。
-- **试用发布。** 完善运行说明和测试示例，计划通过 GitHub Releases 提供 Windows 可执行文件。
+- 程序会参考 WinGet 识别到的已安装项。推荐中的已装软件会标记为「已安装」，默认不勾选。
+- 对目录之外的建议，程序用 WinGet 核对名称或软件包 ID。唯一匹配且尚未检测为已安装的项目会标记为「新软件」，可手动勾选。未能唯一匹配的名称可在 **操作记录** 中查看。
+- 如果 AI 提出需要澄清的问题，可以把回答追加到输入框，再次生成推荐。
 
-## 参考项目与文档
+确认后点 **加入清单**。所选推荐会合并到左侧，并保留原来的勾选。点击左侧的安装入口并确认，才会开始安装。
 
-- [Winhance](https://github.com/memstechtips/Winhance) · 桌面软件管理界面的设计参考
-- [Microsoft WinGet 安装文档](https://learn.microsoft.com/en-us/windows/package-manager/winget/install) · 软件包安装方式
+推荐请求发给本机 Ollama（`127.0.0.1:11434`）。如果要换模型，先用 `ollama list` 查看可用名称，再替换下面命令中的模型名，在同一个 PowerShell 窗口中执行。
 
-## 开源许可证
+```powershell
+$env:WINSETUP_OLLAMA_MODEL = "已安装的模型名"
+python -m winsetup
+```
 
-本项目采用 [MIT License](LICENSE)。
+## 换机或重装时恢复软件
+
+1. 在旧电脑上点 **扫描本机软件**，勾选要保留的软件，点击 **导出所选**。
+2. 把生成的 JSON 文件带到新电脑。在 WinSetup Lite 中点 **导入清单**，程序会勾选清单中的软件并检查安装状态。
+3. 核对结果后点 **安装所选缺失项**，按确认窗口的提示完成安装。
+
+扫描范围是 WinGet 社区软件源能够匹配的本机应用。JSON 清单记录软件名称和 WinGet ID。软件设置、个人文件和账号数据需要另行备份。 [WinGet 导出文档](https://learn.microsoft.com/windows/package-manager/winget/export)
+
+## 开发与测试
+
+桌面界面使用 Tkinter，软件搜索、检测和安装通过 WinGet 调用，AI 推荐通过本地 Ollama API 生成。
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+测试覆盖清单读写、WinGet 检测与安装结果处理，以及 AI 建议的校验和软件匹配。测试使用模拟接口，可在未安装 WinGet 或 Ollama 的环境中运行。
+
+## 许可证与参考
+
+本项目采用 [MIT 许可证](LICENSE)。桌面软件管理界面的设计参考了 [Winhance](https://github.com/memstechtips/Winhance)。
